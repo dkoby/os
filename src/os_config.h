@@ -53,6 +53,8 @@
 
     #define OS_CONFIG_USE_QUEUE                      /* enable os_queue_ functionality */
 
+    #define OS_CONFIG_USE_VPREEMPT                   /* enable voluntary preemption */
+
     #define OS_CONFIG_USE_SCHEDLOCK                  /* enable os_sched_lock() and os_sched_unlock() functions */
 
     #define OS_CONFIG_USE_DYNMEM                     /* enable dynamic memory functions */

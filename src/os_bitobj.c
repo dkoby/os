@@ -70,6 +70,8 @@ BASE_TYPE os_mutex_lock_tm(BASE_TYPE *pm, BASE_TYPE mask, BASE_TYPE flags, BASE_
 
     ret = OS_ERR_NONE;
 
+    OS_VYIELD();
+
     OS_DISABLE_IRQ();
     {
         PORT_DATA_BARIER();
@@ -230,6 +232,8 @@ BASE_TYPE os_event_wait_tm(BASE_TYPE *pe, BASE_TYPE mask, BASE_TYPE flags, BASE_
     BASE_TYPE ret;
 
     ret = OS_ERR_NONE;
+
+    OS_VYIELD();
 
     OS_DISABLE_IRQ();
     {

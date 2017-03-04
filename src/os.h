@@ -55,6 +55,9 @@ void os_start();
 #endif
 
 void os_yield();
+#ifdef OS_CONFIG_USE_VPREEMPT
+void os_vyield();
+#endif
 
 #if (defined OS_CONFIG_USE_MUTEX) || (defined OS_CONFIG_USE_EVENT)
     #include "os_bitobj.h"
@@ -90,8 +93,8 @@ void os_yield();
     void os_sched_unlock();
 #endif
 
-inline void os_disable_irq();
-inline void os_enable_irq();
+void os_disable_irq();
+void os_enable_irq();
 
 void os_disable_irq_r();
 void os_enable_irq_r();

@@ -254,7 +254,18 @@ void os_tick()
                 if ((*timeout) == 0)
                 {
                     *timeout = OS_TIMEOUT_EXPIRED;
+#ifdef OS_CONFIG_USE_VPREEMPT
+                    /*
+                     * NOTE idle task preempted, be care of critical sections
+                     * in idle task if present
+                     */
+                    if (os_current_taskcb == OS_IDLE_TASKCB)
+                        suspend = 1;
+                    else
+                        os_current_taskcb->vpreempt = 1;
+#else
                     suspend = 1;
+#endif
                 }
             }
             ptask++;
@@ -267,7 +278,11 @@ void os_tick()
      * Check for expire of task's time slice (if not idle task).
      * Tick slice only if task is running.
      */
-    if (os_current_taskcb != OS_IDLE_TASKCB &&
+    if (
+#ifdef OS_CONFIG_USE_VPREEMPT
+        !os_current_taskcb->vpreempt &&
+#endif
+        os_current_taskcb != OS_IDLE_TASKCB &&
         os_current_taskcb->lock.state == OS_TASK_STATE_RUN)
     {
         timeout = (BASE_TYPE*)&os_current_taskcb->tslice;
@@ -277,6 +292,9 @@ void os_tick()
             if ((*timeout) == 0)
             {
                 os_respawn_tslice(os_current_taskcb);
+#ifdef OS_CONFIG_USE_VPREEMPT
+                os_current_taskcb->vpreempt = 1;
+#else
 #if OS_USE_LOCK
                 os_current_taskcb->lock.state = OS_TASK_STATE_SUSPEND;
 #endif
@@ -285,6 +303,7 @@ void os_tick()
                  * Task is suspended now. Nothing to do anymore - return.
                  */
                 return;
+#endif /* OS_CONFIG_USE_VPREEMPT */
             }
         }
     }
@@ -321,12 +340,37 @@ inline void os_respawn_tslice(volatile struct os_taskcb_t *task)
  */
 void os_yield()
 {
+#ifdef OS_CONFIG_USE_VPREEMPT
+    OS_DISABLE_IRQ();
+    os_current_taskcb->vpreempt = 0;
+    OS_ENABLE_IRQ();
+#endif
+
 #if OS_USE_LOCK
     os_lock_task(OS_TASK_STATE_SUSPEND, NULL, 0, 0);
 #else
     os_task_switch();
 #endif
 }
+
+#ifdef OS_CONFIG_USE_VPREEMPT
+/*
+ * voulantary yield
+ */
+void os_vyield()
+{
+    BASE_TYPE yield;
+    yield = 0;
+    OS_DISABLE_IRQ();
+    {
+        if (os_current_taskcb->vpreempt)
+            yield = 1;
+    }
+    OS_ENABLE_IRQ();
+    if (yield)
+        os_yield();
+}
+#endif
 
 #ifdef OS_CONFIG_USE_WAIT
 /*

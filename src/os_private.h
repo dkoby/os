@@ -143,6 +143,10 @@ struct os_taskcb_t {
     char name[OS_CONFIG_TASK_NAME_SIZE]; /* task's symbolic name, used for debuging */
 #endif
 
+#ifdef OS_CONFIG_USE_VPREEMPT
+    BASE_TYPE vpreempt;
+#endif
+
 #ifdef OS_CONFIG_USE_TRACE
     uint8 *stack;     /* Pointer to start of stack, should be second member. */
     BASE_TYPE ssize;  /* Size of stack, should be third member. */
@@ -185,9 +189,16 @@ extern BASE_TYPE os_taskidx;                           /* number of current init
 extern struct os_taskcb_t os_tasks[OS_CONFIG_TASK_COUNT + 1]; /* control block of task, NOTE os_task[0] is control block of idle task */
 
 #ifdef OS_CONFIG_USE_TASK_SLICE
-    inline void os_respawn_tslice(volatile struct os_taskcb_t *task);
+    void os_respawn_tslice(volatile struct os_taskcb_t *task);
 #endif
     
+#ifdef OS_CONFIG_USE_VPREEMPT
+    void os_vyield();
+    #define OS_VYIELD() os_vyield()
+#else
+    #define OS_VYIELD()
+#endif
+
 void port_task_switch();
 #define os_task_switch() port_task_switch()
 
