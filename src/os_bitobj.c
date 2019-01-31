@@ -70,8 +70,6 @@ BASE_TYPE os_mutex_lock_tm(BASE_TYPE *pm, BASE_TYPE mask, BASE_TYPE flags, BASE_
 
     ret = OS_ERR_NONE;
 
-    OS_VYIELD();
-
     OS_DISABLE_IRQ();
     {
         PORT_DATA_BARIER();
@@ -208,7 +206,10 @@ void os_event_clear(BASE_TYPE *pe, BASE_TYPE mask)
  *                                   immediately with OS_ERR_WOULDLOCK error code
  *                 OS_FLAG_CLEAR     clear event on catch
  *                                   (beware if more then one task waiting for event
- *                                    only first task catch event occurence)
+ *                                    only first task will catch event occurence)
+ *                 OS_FLAG_CLEAR_CUR clear event on catch, clear only occured event
+ *                                   (beware if more then one task waiting for event
+ *                                    only first task will catch event occurence)
  *
  *     timeout     if specified wait with timeout for event occurence
  *
@@ -233,14 +234,14 @@ BASE_TYPE os_event_wait_tm(BASE_TYPE *pe, BASE_TYPE mask, BASE_TYPE flags, BASE_
 
     ret = OS_ERR_NONE;
 
-    OS_VYIELD();
-
     OS_DISABLE_IRQ();
     {
         if (*pe & mask)
         {
             ret = OS_ERR_NONE;
-            if (flags & OS_FLAG_CLEAR)
+            if (flags & OS_FLAG_CLEAR_CUR)
+                OS_BITMASK_CLEAR(*pe, *pe & mask);
+            else if (flags & OS_FLAG_CLEAR)
                 OS_BITMASK_CLEAR(*pe, mask /* XXX *pe & mask */);
             goto out;
         }
@@ -264,7 +265,9 @@ BASE_TYPE os_event_wait_tm(BASE_TYPE *pe, BASE_TYPE mask, BASE_TYPE flags, BASE_
             if (*pe & mask)
             {
                 ret = OS_ERR_NONE;
-                if (flags & OS_FLAG_CLEAR)
+                if (flags & OS_FLAG_CLEAR_CUR)
+                    OS_BITMASK_CLEAR(*pe, *pe & mask);
+                else if (flags & OS_FLAG_CLEAR)
                     OS_BITMASK_CLEAR(*pe, mask /* XXX *pe & mask */);
                 goto out;
             }

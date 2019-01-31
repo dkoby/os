@@ -30,7 +30,7 @@
 
 #ifdef OS_CONFIG_USE_DYNMEM
 
-uint8 dmem[OS_CONFIG_DYNMEM_SIZE] __attribute__((section("heap")));
+uint8_t dmem[OS_CONFIG_DYNMEM_SIZE] __attribute__((section("heap")));
 
 #endif /* OS_CONFIG_USE_MALLOC */
 

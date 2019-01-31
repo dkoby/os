@@ -41,7 +41,7 @@ struct os_dmem_stat_t {
 extern struct os_dmem_stat_t os_dmstat;
 #endif
 
-extern uint8 dmem[OS_CONFIG_DYNMEM_SIZE];
+extern uint8_t dmem[OS_CONFIG_DYNMEM_SIZE];
 
 void *os_malloc(BASE_TYPE size);
 void os_mfree(void *p);

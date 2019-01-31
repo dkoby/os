@@ -137,8 +137,6 @@ BASE_TYPE os_multi_wait(struct os_multi_event_t *m, BASE_TYPE type, BASE_TYPE ti
 {
     m->type = type;
 
-    OS_VYIELD();
-
     if (os_lock_task(OS_TASK_STATE_LOCKED_MULTI, m, 0, timeout) == OS_TIMEOUT_EXPIRED)
         return OS_ERR_TIMEOUT;
     else

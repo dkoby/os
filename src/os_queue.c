@@ -42,7 +42,7 @@ struct os_qmsg_head_t {
 
 struct os_qmsg_t {
     struct os_qmsg_head_t head;
-    uint8 data[1];
+    uint8_t data[1];
 };
 
 /*
@@ -239,7 +239,7 @@ out:
  */
 void os_queue_flush(struct os_queue_t *q)
 {
-    os_mutex_lock_tm(&q->mutex, 0x01, OS_FLAG_NONE, OS_WAIT_FOREVER);
+    os_mutex_lock(&q->mutex, 0x01, OS_FLAG_NONE, OS_WAIT_FOREVER);
     q->count = 0;
     q->wp = 0;
     os_mutex_unlock(&q->mutex, 0x01);
@@ -252,7 +252,7 @@ int os_queue_isempty(struct os_queue_t *q)
 {
     int ret;
 
-    os_mutex_lock_tm(&q->mutex, 0x01, OS_FLAG_NONE, OS_WAIT_FOREVER);
+    os_mutex_lock(&q->mutex, 0x01, OS_FLAG_NONE, OS_WAIT_FOREVER);
     {
         if (q->count)
             ret = 0;

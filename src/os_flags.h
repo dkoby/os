@@ -36,6 +36,7 @@
 #define OS_FLAG_NONE      0
 #define OS_FLAG_NOWAIT    (1 << 0)
 #define OS_FLAG_CLEAR     (1 << 1)
+#define OS_FLAG_CLEAR_CUR (1 << 2)
 
 #define OS_WAIT_FOREVER    0
 

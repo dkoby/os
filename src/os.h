@@ -35,10 +35,10 @@
 
 void os_init();
 #ifdef OS_CONFIG_USE_PRIORITY
-    struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, BASE_TYPE priority, void (*process)(), void *context);
+    struct os_taskcb_t* os_task_init(char *name, uint8_t *stack, BASE_TYPE ssize, BASE_TYPE priority, void (*process)(), void *context);
     #define OS_TASK_INIT(name, stack, ssize, priority, process, context) os_task_init(name, stack, ssize, priority, process, context);
 #else
-    struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, void (*process)(), void *context);
+    struct os_taskcb_t* os_task_init(char *name, uint8_t *stack, BASE_TYPE ssize, void (*process)(), void *context);
     #define OS_TASK_INIT(name, stack, ssize, priority, process, context) os_task_init(name, stack, ssize, process, context);
 #endif
 
@@ -55,9 +55,6 @@ void os_start();
 #endif
 
 void os_yield();
-#ifdef OS_CONFIG_USE_VPREEMPT
-void os_vyield();
-#endif
 
 #if (defined OS_CONFIG_USE_MUTEX) || (defined OS_CONFIG_USE_EVENT)
     #include "os_bitobj.h"
@@ -100,6 +97,11 @@ void os_disable_irq_r();
 void os_enable_irq_r();
 
 void *os_task_get_context();
+
+#ifdef OS_CONFIG_USE_SUPERTASK
+void os_set_super(struct os_taskcb_t *tcb);
+void os_clear_super(struct os_taskcb_t *tcb);
+#endif
 
 #endif
 

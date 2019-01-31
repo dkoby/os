@@ -38,7 +38,7 @@ struct os_queue_t {
     BASE_TYPE count; /* count of bytes contained in queue */
     BASE_TYPE wp;    /* write pointer */
 
-    uint8 *spool;    /* pointer to spool */
+    uint8_t *spool;    /* pointer to spool */
 };
 
 struct os_queue_t *os_queue_init(BASE_TYPE len, BASE_TYPE msize);

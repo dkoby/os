@@ -53,8 +53,6 @@
 
     #define OS_CONFIG_USE_QUEUE                      /* enable os_queue_ functionality */
 
-    #define OS_CONFIG_USE_VPREEMPT                   /* enable voluntary preemption */
-
     #define OS_CONFIG_USE_SCHEDLOCK                  /* enable os_sched_lock() and os_sched_unlock() functions */
 
     #define OS_CONFIG_USE_DYNMEM                     /* enable dynamic memory functions */
@@ -67,6 +65,7 @@
     #define OS_CONFIG_TRAP_QUEUE                     /* trap on queue errors */
     #define OS_CONFIG_TRAP_MULTI                     /* trap on multiple events errors */
 
+    #define OS_CONFIG_RESTORE_TSLICE_ONLOCK          /* restore time slice of task when it is going to lock state */
 #endif
 
 /* check if proper configuration file speicifed */

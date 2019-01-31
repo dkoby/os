@@ -69,8 +69,6 @@ BASE_TYPE os_rmutex_lock_tm(struct os_rmutex_t *rm, BASE_TYPE flags, BASE_TYPE *
 
     ret = OS_ERR_NONE;
 
-    OS_VYIELD();
-
     OS_DISABLE_IRQ();
     {
         PORT_DATA_BARIER();

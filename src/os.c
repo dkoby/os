@@ -46,7 +46,7 @@ volatile struct os_taskcb_t *os_schedlock_taskcb; /* pointer to task that posses
 #define IDLE_STACK       idle_stack
 #define IDLE_STACK_SIZE  (OS_STACK_MINSIZE + 16 /* XXX */)
 #define IDLE_PROCESS     os_idle_process
-STATIC uint8 idle_stack[IDLE_STACK_SIZE] __attribute__((section("tstack")));
+STATIC uint8_t idle_stack[IDLE_STACK_SIZE] __attribute__((section("tstack")));
 STATIC void os_idle_process();
 
 BASE_TYPE irqd; /* interrupt disable counter */
@@ -90,9 +90,9 @@ void os_start()
  *
  */
 #ifdef OS_CONFIG_USE_PRIORITY
-struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, BASE_TYPE priority, void (*process)(), void *context)
+struct os_taskcb_t* os_task_init(char *name, uint8_t *stack, BASE_TYPE ssize, BASE_TYPE priority, void (*process)(), void *context)
 #else
-struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, void (*process)(), void *context)
+struct os_taskcb_t* os_task_init(char *name, uint8_t *stack, BASE_TYPE ssize, void (*process)(), void *context)
 #endif
 {
     struct os_taskcb_t *task;
@@ -112,7 +112,7 @@ struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, void
 
     task = &os_tasks[os_taskidx];
 
-    DEBUG_OS_HEX_WRAP("task = ", (uint32*)&task, 4);
+    DEBUG_OS_HEX_WRAP("task = ", (uint32_t*)&task, 4);
     /* move pointer to next TCB */
     os_taskidx++;
 
@@ -154,7 +154,7 @@ struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, void
         os_squeue_addtask(task);
 #endif
 #ifdef OS_STACK_DIR_DECREASE
-    task->tos = (uint8*)((BASE_TYPE)stack + ssize);
+    task->tos = (uint8_t*)((BASE_TYPE)stack + ssize);
     if (os_taskidx > 1) 
         task->tos -= OS_CONTEXT_SIZE;
 #else
@@ -163,13 +163,13 @@ struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, void
     if (os_taskidx > 1) 
     {
         BASE_TYPE clen;
-        uint8 *pcontext, *picontext;
+        uint8_t *pcontext, *picontext;
 
         /* fill task stack with initial context */
         ct = (struct os_task_context_t *)task->tos;
 
         pcontext  = task->tos;
-        picontext = (uint8*)&icontext;
+        picontext = (uint8_t*)&icontext;
         clen = sizeof(struct os_task_context_t);
 
         while (clen--) 
@@ -183,7 +183,7 @@ struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, void
     }
 
 //#ifdef XC16 /* XXX means 16-bit PIC microcontrollers */
-//    ct->pc15_0  = (uint16)process;
+//    ct->pc15_0  = (uint16_t)process;
 //    /* XXX if task address exceed 16-bit then compiller should use jump table */
 //    ct->pc22_16 = 0;
 //#else
@@ -197,9 +197,9 @@ struct os_taskcb_t* os_task_init(char *name, uint8 *stack, BASE_TYPE ssize, void
 
 #ifdef OS_CONFIG_USE_TRACE
     #ifdef OS_STACK_DIR_DECREASE
-        task->tos_max = (uint8*)BASE_TYPE_MAX;
+        task->tos_max = (uint8_t*)0;
     #else
-        task->tos_max = (uint8*)0;
+        task->tos_max = (uint8_t*)BASE_TYPE_MAX;
     #endif
 #endif
 
@@ -224,6 +224,10 @@ void *os_task_get_context()
     return os_current_taskcb->context;
 }
 
+#ifdef OSW_TICK_DEBUG
+void osw_tick();
+#endif
+
 #ifdef OS_CONFIG_TICK_PERIOD
 /*
  * for preemption and functions with timeout
@@ -234,6 +238,11 @@ void os_tick()
 {
     BASE_TYPE suspend;
     BASE_TYPE *timeout;
+
+#ifdef OSW_TICK_DEBUG
+    #warning OSW_TICK call enabled
+    osw_tick();
+#endif
 
 #ifdef OS_CONFIG_USE_TRACE
     os_current_taskcb->ticks++;     /* time of task in running state (system ticks) */
@@ -254,18 +263,7 @@ void os_tick()
                 if ((*timeout) == 0)
                 {
                     *timeout = OS_TIMEOUT_EXPIRED;
-#ifdef OS_CONFIG_USE_VPREEMPT
-                    /*
-                     * NOTE idle task preempted, be care of critical sections
-                     * in idle task if present
-                     */
-                    if (os_current_taskcb == OS_IDLE_TASKCB)
-                        suspend = 1;
-                    else
-                        os_current_taskcb->vpreempt = 1;
-#else
                     suspend = 1;
-#endif
                 }
             }
             ptask++;
@@ -278,11 +276,7 @@ void os_tick()
      * Check for expire of task's time slice (if not idle task).
      * Tick slice only if task is running.
      */
-    if (
-#ifdef OS_CONFIG_USE_VPREEMPT
-        !os_current_taskcb->vpreempt &&
-#endif
-        os_current_taskcb != OS_IDLE_TASKCB &&
+    if (os_current_taskcb != OS_IDLE_TASKCB &&
         os_current_taskcb->lock.state == OS_TASK_STATE_RUN)
     {
         timeout = (BASE_TYPE*)&os_current_taskcb->tslice;
@@ -291,10 +285,7 @@ void os_tick()
             (*timeout)--;
             if ((*timeout) == 0)
             {
-                os_respawn_tslice(os_current_taskcb);
-#ifdef OS_CONFIG_USE_VPREEMPT
-                os_current_taskcb->vpreempt = 1;
-#else
+                os_restore_tslice(os_current_taskcb);
 #if OS_USE_LOCK
                 os_current_taskcb->lock.state = OS_TASK_STATE_SUSPEND;
 #endif
@@ -303,7 +294,6 @@ void os_tick()
                  * Task is suspended now. Nothing to do anymore - return.
                  */
                 return;
-#endif /* OS_CONFIG_USE_VPREEMPT */
             }
         }
     }
@@ -321,9 +311,9 @@ void os_tick()
 
 #ifdef OS_CONFIG_USE_TASK_SLICE
 /*
- * respawn time slice of task
+ * restore time slice of task
  */
-inline void os_respawn_tslice(volatile struct os_taskcb_t *task)
+inline void os_restore_tslice(volatile struct os_taskcb_t *task)
 {
     #ifdef OS_CONFIG_USE_VARIABLE_TASK_SLICE
         task->tslice = task->dslice;
@@ -340,37 +330,12 @@ inline void os_respawn_tslice(volatile struct os_taskcb_t *task)
  */
 void os_yield()
 {
-#ifdef OS_CONFIG_USE_VPREEMPT
-    OS_DISABLE_IRQ();
-    os_current_taskcb->vpreempt = 0;
-    OS_ENABLE_IRQ();
-#endif
-
 #if OS_USE_LOCK
     os_lock_task(OS_TASK_STATE_SUSPEND, NULL, 0, 0);
 #else
     os_task_switch();
 #endif
 }
-
-#ifdef OS_CONFIG_USE_VPREEMPT
-/*
- * voulantary yield
- */
-void os_vyield()
-{
-    BASE_TYPE yield;
-    yield = 0;
-    OS_DISABLE_IRQ();
-    {
-        if (os_current_taskcb->vpreempt)
-            yield = 1;
-    }
-    OS_ENABLE_IRQ();
-    if (yield)
-        os_yield();
-}
-#endif
 
 #ifdef OS_CONFIG_USE_WAIT
 /*
@@ -382,6 +347,37 @@ void os_vyield()
 void os_wait(BASE_TYPE ticks)
 {
     os_lock_task(OS_TASK_STATE_LOCKED_WAIT, NULL, 0, ticks);
+}
+#endif
+
+#ifdef OS_CONFIG_USE_SUPERTASK
+/*
+ *
+ */
+void os_set_super(struct os_taskcb_t *tcb)
+{
+    if (!tcb)
+        return;
+
+    OS_DISABLE_IRQ();
+    {
+        tcb->superTask = 1;
+    }
+    OS_ENABLE_IRQ();
+}
+/*
+ *
+ */
+void os_clear_super(struct os_taskcb_t *tcb)
+{
+    if (!tcb)
+        return;
+
+    OS_DISABLE_IRQ();
+    {
+        tcb->superTask = 0;
+    }
+    OS_ENABLE_IRQ();
 }
 #endif
 
@@ -404,7 +400,7 @@ void os_set_slice(BASE_TYPE ticks)
 }
 #endif
 
-extern uint32 tdmatimer;
+extern uint32_t tdmatimer;
 /*
  *
  */

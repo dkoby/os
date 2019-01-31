@@ -80,9 +80,9 @@ BASE_TYPE os_lock_task(BASE_TYPE type, void *pobj, BASE_TYPE mask, BASE_TYPE tim
         os_current_taskcb->lock.state   = type;
         os_current_taskcb->lock.pobj    = pobj;
         os_current_taskcb->lock.mask    = mask;
-#ifdef OS_CONFIG_USE_TASK_SLICE
-        /* task was locked, respawn it's time slice */
-        os_respawn_tslice(os_current_taskcb);
+#if (defined OS_CONFIG_USE_TASK_SLICE) && (defined OS_CONFIG_RESTORE_TSLICE_ONLOCK)
+        /* task was locked, restore it's time slice */
+        os_restore_tslice(os_current_taskcb);
 #endif
     }
     OS_ENABLE_IRQ();
@@ -251,7 +251,7 @@ void os_scheduler()
     volatile struct os_taskcb_t *readytask;
     volatile struct os_taskcb_t *susptask;
     struct os_task_lock_t *lock;
-#ifdef OS_CONFIG_USE_PRIORITY
+#if (defined OS_CONFIG_USE_PRIORITY || defined OS_CONFIG_USE_SUPERTASK)
     volatile struct os_taskcb_t *priotask;
 #endif
     /*
@@ -280,7 +280,7 @@ void os_scheduler()
 
     readytask = NULL;
     susptask  = NULL;
-#ifdef OS_CONFIG_USE_PRIORITY
+#if (defined OS_CONFIG_USE_PRIORITY || defined OS_CONFIG_USE_SUPERTASK)
     priotask  = NULL;
 #endif
 
@@ -314,21 +314,31 @@ void os_scheduler()
             continue;
 ready:
             readytask = pt;
-#ifdef OS_CONFIG_USE_PRIORITY
+#if (defined OS_CONFIG_USE_PRIORITY || defined OS_CONFIG_USE_SUPERTASK)
             if (priotask == NULL)
             {
                 priotask = readytask;
             } else {
-                /* lower number - higher priority */
-                if (readytask->priority < priotask->priority)
+#ifdef OS_CONFIG_USE_SUPERTASK
+                if (readytask->superTask)
                     priotask = readytask;
+#endif /* OS_CONFIG_USE_SUPERTASK */
+#ifdef OS_CONFIG_USE_PRIORITY
+                /* lower number - higher priority */
+                if (readytask->priority < priotask->priority
+#ifdef OS_CONFIG_USE_SUPERTASK
+                    && !priotask->superTask
+#endif /* OS_CONFIG_USE_SUPERTASK */
+                )
+                    priotask = readytask;
+#endif /* OS_CONFIG_USE_PRIORITY */
             }
 #else
             break;
-#endif
+#endif /* (defined OS_CONFIG_USE_PRIORITY || defined OS_CONFIG_USE_SUPERTASK) */
         }
 
-#ifdef OS_CONFIG_USE_PRIORITY
+#if (defined OS_CONFIG_USE_PRIORITY || defined OS_CONFIG_USE_SUPERTASK)
     if (priotask)
         readytask = priotask;
 #endif
