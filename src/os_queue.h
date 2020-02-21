@@ -40,8 +40,15 @@ struct os_queue_t {
 
     uint8_t *spool;    /* pointer to spool */
 };
+struct os_qmsg_head_t {
+    BASE_TYPE len;
+};
 
 struct os_queue_t *os_queue_init(BASE_TYPE len, BASE_TYPE msize);
+#define OS_QUEUE_STATIC_SPOOL_SIZE(msize, len) \
+    ((len) * ((msize + ((sizeof(BASE_TYPE) - (msize % sizeof(BASE_TYPE))))) + sizeof(struct os_qmsg_head_t)))
+
+struct os_queue_t *os_queue_init_static(struct os_queue_t *q, BASE_TYPE len, BASE_TYPE msize, uint8_t *spool);
 #define os_queue_add(q, flags, timeout, data, len) \
     os_queue_add_with_event(q, flags, timeout, data, len, NULL, 0)
 BASE_TYPE os_queue_add_with_event(struct os_queue_t *q, BASE_TYPE flags, BASE_TYPE timeout, void *data, BASE_TYPE len, BASE_TYPE *pe, BASE_TYPE ne_mask);

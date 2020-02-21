@@ -36,10 +36,6 @@
 
 #if (defined OS_CONFIG_USE_QUEUE)
 
-struct os_qmsg_head_t {
-    BASE_TYPE len;
-};
-
 struct os_qmsg_t {
     struct os_qmsg_head_t head;
     uint8_t data[1];
@@ -49,7 +45,6 @@ struct os_qmsg_t {
  * initialize queue
  *
  * ARGS
- *     midx     mutex associated with queue
  *     len      number of messages in queue
  *     msize    size of message in bytes (only size of data field)
  *
@@ -75,7 +70,32 @@ struct os_queue_t *os_queue_init(BASE_TYPE len, BASE_TYPE msize)
 
     return q;
 }
+/*
+ * initialize queue
+ *
+ * ARGS
+ *     len      number of messages in queue
+ *     msize    size of message in bytes (only size of data field)
+ *
+ * RETURN
+ *     pointer to allocated queue
+ */
+struct os_queue_t *os_queue_init_static(struct os_queue_t *q, BASE_TYPE len, BASE_TYPE msize, uint8_t *spool)
+{
+    OS_DISABLE_IRQ();
 
+    msize += (sizeof(BASE_TYPE) - (msize % sizeof(BASE_TYPE)));
+
+    q->mutex = 0;
+    q->msize = msize + sizeof(struct os_qmsg_head_t);
+    q->qsize = len * q->msize;
+    q->count = 0;
+    q->wp    = 0;
+    q->spool = spool;
+    OS_ENABLE_IRQ();
+
+    return q;
+}
 /*
  * ARGS
  *     q           pointer to queue structure
